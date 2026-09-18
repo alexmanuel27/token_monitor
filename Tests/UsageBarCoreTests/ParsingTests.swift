@@ -640,7 +640,7 @@ struct UsageStoreTests {
         let relaunched = UsageStore(defaults: defaults)
 
         #expect(relaunched.available.count == 2)
-        #expect(relaunched.statuses.allSatisfy { $0.stale != nil })
+        #expect(relaunched.statuses.allSatisfy { $0.stale == nil })
         #expect(relaunched.menuBarReadout == .single(18))
     }
 

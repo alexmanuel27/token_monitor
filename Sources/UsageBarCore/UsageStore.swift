@@ -179,7 +179,8 @@ public final class UsageStore {
             return ProviderStatus(
                 kind: kind,
                 outcome: .report(cached.report),
-                stale: ProviderStatus.Stale(since: cached.fetchedAt, reason: "Not refreshed yet.")
+                stale: now.timeIntervalSince(cached.fetchedAt) < minFetchInterval
+                    ? nil : ProviderStatus.Stale(since: cached.fetchedAt, reason: "Not refreshed yet.")
             )
         }
     }

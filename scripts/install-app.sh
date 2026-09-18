@@ -10,6 +10,6 @@ target="/Applications/Token Monitor.app"
 osascript -e 'quit app "Token Monitor"' 2>/dev/null || true
 rm -rf "$target"
 cp -R "$repo_dir/dist/Token Monitor.app" /Applications/
-open "$target"
+open -n "$target"
 
 echo "$target"
