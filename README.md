@@ -8,7 +8,7 @@ App de barra de menú para macOS que muestra los límites de uso de Codex y Clau
 2. Ejecuta `./scripts/install-app.sh`.
 3. Abre **Token Monitor** desde Aplicaciones y pulsa su icono en la barra de menú.
 
-La app se actualiza cada cinco minutos. Muestra porcentajes de uso y reinicios de ventana, no un saldo fijo de tokens.
+La app se actualiza cada cinco minutos. La cifra de la barra muestra el promedio de uso semanal de Codex y Claude; si falta uno, queda vacía. El panel muestra los porcentajes y reinicios de cada ventana, no un saldo fijo de tokens.
 
 En **Nueva tarea**, escribe lo que necesitas y elige la carpeta del proyecto. Token Monitor consulta las cuotas y abre una sesión de la IA con más capacidad disponible. Compara el porcentaje libre de la ventana más ajustada de cada cuenta; no existen saldos absolutos de tokens comparables entre suscripciones.
 

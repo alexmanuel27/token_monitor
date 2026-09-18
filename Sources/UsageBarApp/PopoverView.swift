@@ -199,7 +199,7 @@ private struct FooterView: View {
                 .pickerStyle(.inline)
                 Divider()
                 Toggle("Show Both Windows", isOn: $store.showsBothWindows)
-                    .disabled(store.menuBarSource == .highest)
+                    .disabled(store.menuBarSource == .averageWeekly)
                 Toggle("Open at Login", isOn: loginItemBinding)
                 Divider()
                 Button("Salir de Token Monitor") { NSApplication.shared.terminate(nil) }

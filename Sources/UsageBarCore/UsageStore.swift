@@ -44,8 +44,8 @@ public final class UsageStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.menuBarSource = defaults.string(forKey: MenuBarSource.defaultsKey)
-            .flatMap(MenuBarSource.init(rawValue:)) ?? .highest
+        let savedSource = defaults.string(forKey: MenuBarSource.defaultsKey)
+        self.menuBarSource = savedSource.flatMap(MenuBarSource.init(rawValue:)) ?? .averageWeekly
         self.showsBothWindows = defaults.bool(forKey: Self.showsBothWindowsKey)
         self.cache = Self.loadCache(from: defaults)
         self.blockedUntil = Self.loadBlockedUntil(from: defaults)
@@ -75,12 +75,16 @@ public final class UsageStore {
             }
         }
 
-        guard let highest = reports.compactMap(\.longestWindow).map(\.usedPercent).max() else { return .empty }
-        return .single(highest)
+        if menuBarSource == .averageWeekly {
+            let weekly = reports.compactMap { $0.accountWindows.first { $0.windowMinutes == 10080 }?.usedPercent }
+            guard weekly.count == ProviderKind.allCases.count else { return .empty }
+            return .single(weekly.reduce(0, +) / Double(weekly.count))
+        }
+        guard let percent = reports.first?.longestWindow?.usedPercent else { return .empty }
+        return .single(percent)
     }
 
-    /// Nil when the chosen provider has nothing to show, which leaves the menu bar
-    /// showing an empty ring.
+    /// Nil when a selected provider or either weekly reading is unavailable.
     public var headlinePercent: Double? {
         menuBarReadout.highestPercent
     }

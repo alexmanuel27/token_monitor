@@ -2,7 +2,7 @@ import Foundation
 
 /// Which provider's usage the menu bar number stands for.
 public enum MenuBarSource: String, Sendable, CaseIterable, Identifiable {
-    case highest
+    case averageWeekly
     case claude
     case codex
 
@@ -12,7 +12,7 @@ public enum MenuBarSource: String, Sendable, CaseIterable, Identifiable {
 
     public var title: String {
         switch self {
-        case .highest: "Highest"
+        case .averageWeekly: "Promedio semanal"
         case .claude: ProviderKind.claude.displayName
         case .codex: ProviderKind.codex.displayName
         }
@@ -20,7 +20,7 @@ public enum MenuBarSource: String, Sendable, CaseIterable, Identifiable {
 
     public var providerKind: ProviderKind? {
         switch self {
-        case .highest: nil
+        case .averageWeekly: nil
         case .claude: .claude
         case .codex: .codex
         }

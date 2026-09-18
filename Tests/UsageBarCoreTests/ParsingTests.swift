@@ -375,7 +375,7 @@ struct UsageStoreTests {
             UsageWindow(id: "seven_day", windowMinutes: 10080, usedPercent: 16, resetsAt: nil),
         ]))),
         ProviderStatus(kind: .codex, outcome: .report(ProviderReport(plan: "free", windows: [
-            UsageWindow(id: "primary", windowMinutes: 43200, usedPercent: 18, resetsAt: nil)
+            UsageWindow(id: "primary", windowMinutes: 10080, usedPercent: 18, resetsAt: nil)
         ]))),
     ]
 
@@ -384,8 +384,8 @@ struct UsageStoreTests {
         let store = UsageStore(defaults: Self.scratchDefaults(#function))
         store.apply(Self.bothProviders)
 
-        #expect(store.menuBarSource == .highest)
-        #expect(store.headlinePercent == 18)
+        #expect(store.menuBarSource == .averageWeekly)
+        #expect(store.headlinePercent == 17)
 
         store.menuBarSource = .claude
         #expect(store.headlinePercent == 16)
@@ -400,7 +400,7 @@ struct UsageStoreTests {
             UsageWindow(id: "seven_day", windowMinutes: 10080, usedPercent: 16, resetsAt: nil),
         ]))),
         ProviderStatus(kind: .codex, outcome: .report(ProviderReport(plan: "free", windows: [
-            UsageWindow(id: "primary", windowMinutes: 43200, usedPercent: 18, resetsAt: nil)
+            UsageWindow(id: "primary", windowMinutes: 10080, usedPercent: 18, resetsAt: nil)
         ]))),
     ]
 
@@ -411,7 +411,7 @@ struct UsageStoreTests {
         let store = UsageStore(defaults: Self.scratchDefaults(#function))
         store.apply(Self.spikingShortWindow)
 
-        #expect(store.menuBarReadout == .single(18))
+        #expect(store.menuBarReadout == .single(17))
 
         store.menuBarSource = .claude
         #expect(store.menuBarReadout == .single(16))
@@ -440,6 +440,18 @@ struct UsageStoreTests {
             UsageWindow(id: "weekly_scoped_fable", windowMinutes: 10080, modelName: "Fable", usedPercent: 82, resetsAt: nil),
         ])))
     ]
+
+    @MainActor
+    @Test func weeklyAverageNeedsBothAccountWideWeeklyReadings() {
+        let store = UsageStore(defaults: Self.scratchDefaults(#function))
+        store.apply(Self.withModelScopedWeekly + [Self.bothProviders[1]])
+        #expect(store.menuBarReadout == .single(17))
+
+        store.apply([ProviderStatus(kind: .codex, outcome: .report(ProviderReport(plan: "free", windows: [
+            UsageWindow(id: "monthly", windowMinutes: 43200, usedPercent: 18, resetsAt: nil)
+        ])))])
+        #expect(store.menuBarReadout == .empty)
+    }
 
     /// The Fable weekly runs the same seven days as the all-models weekly, so letting
     /// it into the menu bar would make the number ambiguous between the two and, on a
@@ -495,8 +507,8 @@ struct UsageStoreTests {
         store.apply(Self.bothProviders)
         store.showsBothWindows = true
 
-        #expect(store.menuBarSource == .highest)
-        #expect(store.menuBarReadout == .single(18))
+        #expect(store.menuBarSource == .averageWeekly)
+        #expect(store.menuBarReadout == .single(17))
     }
 
     /// A free Codex plan has no short window, so there is nothing to put on the other
@@ -509,7 +521,7 @@ struct UsageStoreTests {
         store.showsBothWindows = true
 
         #expect(store.menuBarReadout == .windows([
-            MenuBarReadout.Entry(id: "primary", initial: "m", usedPercent: 18)
+            MenuBarReadout.Entry(id: "primary", initial: "w", usedPercent: 18)
         ]))
     }
 
@@ -641,7 +653,7 @@ struct UsageStoreTests {
 
         #expect(relaunched.available.count == 2)
         #expect(relaunched.statuses.allSatisfy { $0.stale == nil })
-        #expect(relaunched.menuBarReadout == .single(18))
+        #expect(relaunched.menuBarReadout == .single(17))
     }
 
     @MainActor
@@ -667,7 +679,7 @@ struct UsageStoreTests {
         store.apply(Self.bothProviders)
 
         #expect(store.showsBothWindows == false)
-        #expect(store.menuBarReadout == .single(18))
+        #expect(store.menuBarReadout == .single(17))
     }
 
     @MainActor
@@ -707,11 +719,11 @@ struct UsageStoreTests {
     }
 
     @MainActor
-    @Test func fallsBackToHighestWhenTheStoredChoiceIsUnreadable() {
+    @Test func oldHighestChoiceUsesTheNewWeeklyAverage() {
         let defaults = Self.scratchDefaults(#function)
-        defaults.set("gemini", forKey: MenuBarSource.defaultsKey)
+        defaults.set("highest", forKey: MenuBarSource.defaultsKey)
 
-        #expect(UsageStore(defaults: defaults).menuBarSource == .highest)
+        #expect(UsageStore(defaults: defaults).menuBarSource == .averageWeekly)
     }
 
     @MainActor
@@ -733,7 +745,7 @@ struct UsageStoreTests {
             ProviderStatus(kind: .codex, outcome: .unavailable("`codex` was not found.")),
         ])
 
-        #expect(store.headlinePercent == 16)
+        #expect(store.headlinePercent == nil)
         #expect(store.available.map(\.kind) == [.claude])
         #expect(store.unavailable.map(\.kind) == [.codex])
     }
