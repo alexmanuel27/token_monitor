@@ -4,6 +4,7 @@ import Observation
 @MainActor
 @Observable
 public final class UsageStore {
+    public static let defaultsSuite = "dev.alexmanuel.tokenmonitor.shared"
     /// How long a reading keeps standing in for a failed refresh. Matches the hour that
     /// Claude Code itself serves its cached utilization for.
     public static let staleLimit: TimeInterval = 3600
@@ -98,6 +99,16 @@ public final class UsageStore {
             self.refreshTask = nil
             self.apply(results)
         }
+    }
+
+    public func statusesForRouting() async -> [ProviderStatus] {
+        if !statuses.isEmpty, statuses.allSatisfy({ $0.stale == nil }),
+            let lastRefreshed, Date().timeIntervalSince(lastRefreshed) < Self.minFetchInterval {
+            return statuses
+        }
+        refresh(force: true)
+        while isRefreshing { try? await Task.sleep(for: .milliseconds(100)) }
+        return statuses
     }
 
     /// A provider inside a server-named penalty stays skipped even when forced: the

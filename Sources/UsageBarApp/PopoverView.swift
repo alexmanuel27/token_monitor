@@ -12,6 +12,8 @@ struct PopoverView: View {
                 }
             }
             Divider().padding(.vertical, 10)
+            TaskLaunchView(store: store)
+            Divider().padding(.vertical, 10)
             FooterView(store: store)
         }
         .padding(16)

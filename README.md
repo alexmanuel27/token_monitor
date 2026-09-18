@@ -10,6 +10,10 @@ App de barra de menú para macOS que muestra los límites de uso de Codex y Clau
 
 La app se actualiza cada cinco minutos. Muestra porcentajes de uso y reinicios de ventana, no un saldo fijo de tokens.
 
+En **Nueva tarea**, escribe lo que necesitas y elige la carpeta del proyecto. Token Monitor consulta las cuotas y abre una sesión de la IA con más capacidad disponible. Compara el porcentaje libre de la ventana más ajustada de cada cuenta; no existen saldos absolutos de tokens comparables entre suscripciones.
+
+Para repartir una tarea entre actividades desde otro agente o la terminal, ejecuta `'/Applications/Token Monitor.app/Contents/MacOS/token-route' choose` antes de cada actividad. `token-route run 'actividad'` la asigna y ejecuta con una sola IA, escogida de nuevo en ese momento. Las tareas escritas directamente en las apps de Codex o Claude ya han empezado en esa IA; las instrucciones globales las derivan cuando el monitor elige la otra.
+
 ## Desarrollo
 
 `./scripts/test.sh` comprueba el análisis de las respuestas. `./scripts/build-app.sh` crea la app en `dist/`.

@@ -17,6 +17,7 @@ bin_path="$(swift build "${build_args[@]}" --show-bin-path)"
 rm -rf "$app_dir"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
 cp "$bin_path/usagebar" "$app_dir/Contents/MacOS/usagebar"
+cp "$bin_path/token-route" "$app_dir/Contents/MacOS/token-route"
 cp "$repo_dir/Support/Info.plist" "$app_dir/Contents/Info.plist"
 
 if [[ -n "${USAGEBAR_VERSION:-}" ]]; then

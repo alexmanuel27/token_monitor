@@ -35,5 +35,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension UsageStore {
-    @MainActor static let shared = UsageStore()
+    @MainActor static let shared = UsageStore(defaults: UserDefaults(suiteName: UsageStore.defaultsSuite)!)
 }

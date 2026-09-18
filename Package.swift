@@ -8,10 +8,12 @@ let package = Package(
     ],
     products: [
         .executable(name: "usagebar", targets: ["UsageBarApp"]),
+        .executable(name: "token-route", targets: ["TaskRouterCLI"]),
         .library(name: "UsageBarCore", targets: ["UsageBarCore"]),
     ],
     targets: [
         .target(name: "UsageBarCore"),
+        .executableTarget(name: "TaskRouterCLI", dependencies: ["UsageBarCore"]),
         .executableTarget(
             name: "UsageBarApp",
             dependencies: ["UsageBarCore"],
