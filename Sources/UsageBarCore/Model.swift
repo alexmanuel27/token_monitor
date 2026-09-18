@@ -3,6 +3,7 @@ import Foundation
 public enum ProviderKind: String, Sendable, CaseIterable, Identifiable {
     case claude
     case codex
+    case antigravity
 
     public var id: String { rawValue }
 
@@ -10,6 +11,7 @@ public enum ProviderKind: String, Sendable, CaseIterable, Identifiable {
         switch self {
         case .claude: "Claude Code"
         case .codex: "Codex"
+        case .antigravity: "Antigravity"
         }
     }
 
@@ -17,6 +19,7 @@ public enum ProviderKind: String, Sendable, CaseIterable, Identifiable {
         switch self {
         case .claude: "claude"
         case .codex: "codex"
+        case .antigravity: "agy"
         }
     }
 }
@@ -101,9 +104,7 @@ public struct ProviderStatus: Sendable, Equatable, Identifiable {
         case unavailable(String)
     }
 
-    /// Set when the numbers on screen came from an earlier refresh because this one
-    /// failed. The usage endpoint rate-limits, and a blank menu bar is a worse answer
-    /// than a slightly old one.
+    /// Set when the numbers on screen are old. Old readings never drive routing or the menu bar.
     public struct Stale: Sendable, Equatable {
         public let since: Date
         public let reason: String

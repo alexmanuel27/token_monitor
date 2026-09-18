@@ -130,7 +130,7 @@ public enum ClaudeProbe {
                 guard attempt < retryDelays.count else {
                     throw ClaudeProbeError(
                         message: rateLimitedMessage,
-                        retryAfter: wait.map { Date(timeIntervalSinceNow: $0) }
+                        retryAfter: Date(timeIntervalSinceNow: wait ?? 900)
                     )
                 }
                 try? await Task.sleep(for: .seconds(max(retryDelays[attempt], wait ?? 0)))

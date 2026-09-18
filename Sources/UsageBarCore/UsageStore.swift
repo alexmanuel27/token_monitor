@@ -5,13 +5,11 @@ import Observation
 @Observable
 public final class UsageStore {
     public static let defaultsSuite = "dev.alexmanuel.tokenmonitor.shared"
-    /// How long a reading keeps standing in for a failed refresh. Matches the hour that
-    /// Claude Code itself serves its cached utilization for.
-    public static let staleLimit: TimeInterval = 3600
-    /// Floor between fetches of the same provider. Claude Code throttles its own
-    /// utilization cache to the same five minutes, and the endpoint rate-limits hard
-    /// enough that relaunching the app in a loop is sufficient to trip it.
+    /// Old readings remain visible with their age, but never drive routing or the menu bar.
+    public static let staleLimit: TimeInterval = 86400
+    /// Floor between fetches; Claude needs a longer gap to avoid its hard rate limit.
     public static let minFetchInterval: TimeInterval = 300
+    static func fetchInterval(for kind: ProviderKind) -> TimeInterval { kind == .claude ? 900 : minFetchInterval }
     public static let showsBothWindowsKey = "menuBarShowsBothWindows"
     static let cacheKey = "cachedReports"
     static let blockedUntilKey = "blockedUntil"
@@ -49,7 +47,7 @@ public final class UsageStore {
         self.showsBothWindows = defaults.bool(forKey: Self.showsBothWindowsKey)
         self.cache = Self.loadCache(from: defaults)
         self.blockedUntil = Self.loadBlockedUntil(from: defaults)
-        self.statuses = Self.statuses(fromCache: cache, now: Date())
+        self.statuses = Self.statuses(fromCache: cache, blockedUntil: blockedUntil, now: Date())
     }
 
     public var available: [ProviderStatus] {
@@ -61,7 +59,8 @@ public final class UsageStore {
     }
 
     public var menuBarReadout: MenuBarReadout {
-        let scoped = menuBarSource.providerKind.map { kind in available.filter { $0.kind == kind } } ?? available
+        let fresh = available.filter { $0.stale == nil }
+        let scoped = menuBarSource.providerKind.map { kind in fresh.filter { $0.kind == kind } } ?? fresh
         let reports = scoped.compactMap(\.report)
 
         if showsBothWindows, menuBarSource.providerKind != nil, let report = reports.first {
@@ -76,8 +75,11 @@ public final class UsageStore {
         }
 
         if menuBarSource == .averageWeekly {
-            let weekly = reports.compactMap { $0.accountWindows.first { $0.windowMinutes == 10080 }?.usedPercent }
-            guard weekly.count == ProviderKind.allCases.count else { return .empty }
+            let weekly = [ProviderKind.claude, .codex].compactMap { kind in
+                scoped.first { $0.kind == kind && $0.stale == nil }?.report?
+                    .accountWindows.first { $0.windowMinutes == 10080 }?.usedPercent
+            }
+            guard weekly.count == 2 else { return .empty }
             return .single(weekly.reduce(0, +) / Double(weekly.count))
         }
         guard let percent = reports.first?.longestWindow?.usedPercent else { return .empty }
@@ -98,7 +100,8 @@ public final class UsageStore {
         refreshTask = Task { [weak self] in
             async let claude = Self.probe(.claude, skipping: skipped)
             async let codex = Self.probe(.codex, skipping: skipped)
-            let results = await [claude, codex].compactMap { $0 }
+            async let antigravity = Self.probe(.antigravity, skipping: skipped)
+            let results = await [claude, codex, antigravity].compactMap { $0 }
             guard let self else { return }
             self.refreshTask = nil
             self.apply(results)
@@ -120,9 +123,8 @@ public final class UsageStore {
     /// request into a wall and prolong the penalty.
     func fetchesToSkip(force: Bool, now: Date) -> Set<ProviderKind> {
         var skipped = Set(blockedUntil.filter { now < $0.value }.keys)
-        guard !force else { return skipped }
-        for (kind, cached) in cache where now.timeIntervalSince(cached.fetchedAt) < Self.minFetchInterval {
-            skipped.insert(kind)
+        for (kind, cached) in cache where now.timeIntervalSince(cached.fetchedAt) < Self.fetchInterval(for: kind) {
+            if !force || kind == .claude { skipped.insert(kind) }
         }
         return skipped
     }
@@ -132,6 +134,7 @@ public final class UsageStore {
         switch kind {
         case .claude: return await ClaudeProbe.probe()
         case .codex: return await CodexProbe.probe()
+        case .antigravity: return await AntigravityProbe.probe()
         }
     }
 
@@ -153,15 +156,15 @@ public final class UsageStore {
                 now.timeIntervalSince(cached.fetchedAt) < Self.staleLimit
             else { return result }
 
-            // The usage endpoint rate-limits, so one failed refresh keeps the previous
-            // reading on screen rather than emptying the menu bar.
+            // Keep the previous reading visible with its age; it cannot drive routing or the menu bar.
             return ProviderStatus(
                 kind: result.kind,
                 outcome: .report(cached.report),
                 stale: ProviderStatus.Stale(
                     since: cached.fetchedAt,
                     reason: result.unavailableReason ?? "Could not refresh."
-                )
+                ),
+                retryAfter: result.retryAfter
             )
         }
         saveCache()
@@ -188,14 +191,18 @@ public final class UsageStore {
 
     /// Seeds the display from disk so a relaunch shows numbers immediately instead of
     /// an empty ring while the CLIs are being probed.
-    static func statuses(fromCache cache: [ProviderKind: CachedReport], now: Date) -> [ProviderStatus] {
+    static func statuses(fromCache cache: [ProviderKind: CachedReport],
+        blockedUntil: [ProviderKind: Date] = [:], now: Date) -> [ProviderStatus] {
         ProviderKind.allCases.compactMap { kind in
             guard let cached = cache[kind], now.timeIntervalSince(cached.fetchedAt) < staleLimit else { return nil }
+            let retryAfter = blockedUntil[kind].flatMap { now < $0 ? $0 : nil }
             return ProviderStatus(
                 kind: kind,
                 outcome: .report(cached.report),
-                stale: now.timeIntervalSince(cached.fetchedAt) < minFetchInterval
-                    ? nil : ProviderStatus.Stale(since: cached.fetchedAt, reason: "Not refreshed yet.")
+                stale: retryAfter == nil && now.timeIntervalSince(cached.fetchedAt) < fetchInterval(for: kind)
+                    ? nil : ProviderStatus.Stale(since: cached.fetchedAt,
+                        reason: retryAfter == nil ? "Not refreshed yet." : "Usage service is rate limiting."),
+                retryAfter: retryAfter
             )
         }
     }

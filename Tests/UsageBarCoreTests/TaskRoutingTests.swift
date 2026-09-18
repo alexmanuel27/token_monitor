@@ -14,5 +14,6 @@ import Testing
     #expect(TaskRouting.choose([claude, codex]) == .codex)
     #expect(TaskRouting.choose([status(.claude, 10, 10), status(.codex, 90, 90)]) == .claude)
     #expect(TaskRouting.choose([claude]) == .claude)
+    #expect(TaskRouting.choose([claude, codex, status(.antigravity, 5, 10)]) == .antigravity)
     #expect(TaskRouting.choose([]) == nil)
 }

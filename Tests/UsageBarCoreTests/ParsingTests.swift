@@ -256,8 +256,7 @@ struct ClaudeRateLimitTests {
         }
     }
 
-    /// `retry-after: 0` is what the endpoint used to send; it means the header has
-    /// nothing to say and the fixed schedule stays in charge.
+    /// A zero header gives no useful date, so a local cooldown follows exhausted retries.
     @Test func aZeroRetryAfterKeepsTheFixedSchedule() async throws {
         let session = StubURLProtocol.session(serving: [
             .init(status: 429, headers: ["Retry-After": "0"]),
@@ -270,7 +269,8 @@ struct ClaudeRateLimitTests {
             Issue.record("expected a rate limit error")
         } catch let error as ClaudeProbeError {
             #expect(StubURLProtocol.requestCount == 3)
-            #expect(error.retryAfter == nil)
+            let until = try #require(error.retryAfter)
+            #expect(abs(until.timeIntervalSinceNow - 900) < 30)
         }
     }
 
@@ -611,10 +611,30 @@ struct UsageStoreTests {
         #expect(claude.stale?.reason == "rate limited")
         #expect(claude.stale?.since == start)
         #expect(store.available.count == 2)
+        #expect(store.menuBarReadout == .empty)
+        #expect(TaskRouting.choose(store.statuses) == .codex)
     }
 
     @MainActor
-    @Test func aReadingStopsStandingInAfterAnHour() {
+    @Test func aBlockedClaudeReadingIsVisibleButExcludedAfterRelaunch() {
+        let defaults = Self.scratchDefaults(#function)
+        let store = UsageStore(defaults: defaults)
+        let now = Date()
+        store.apply(Self.bothProviders, now: now.addingTimeInterval(-3600))
+        let until = now.addingTimeInterval(900)
+        store.apply([ProviderStatus(kind: .claude, outcome: .unavailable("rate limited"), retryAfter: until)], now: now)
+
+        let relaunched = UsageStore(defaults: defaults)
+        let claude = try! #require(relaunched.statuses.first { $0.kind == .claude })
+        #expect(claude.report != nil)
+        #expect(claude.stale != nil)
+        #expect(claude.retryAfter == until)
+        #expect(relaunched.menuBarReadout == .empty)
+        #expect(TaskRouting.headroom(claude) == nil)
+    }
+
+    @MainActor
+    @Test func aReadingStopsStandingInAfterADay() {
         let store = UsageStore(defaults: Self.scratchDefaults(#function))
         let start = Date()
         store.apply(Self.bothProviders, now: start)

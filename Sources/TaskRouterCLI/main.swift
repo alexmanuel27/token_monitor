@@ -13,7 +13,7 @@ struct TaskRouterCLI {
         let store = UsageStore(defaults: UserDefaults(suiteName: UsageStore.defaultsSuite)!)
         let statuses = await store.statusesForRouting()
         guard let provider = TaskRouting.choose(statuses) else {
-            fputs("No hay datos recientes de cuota para Codex o Claude.\n", stderr)
+            fputs("No hay datos recientes de cuota para Codex, Claude o Antigravity.\n", stderr)
             exit(1)
         }
         if action == "choose" {
@@ -32,7 +32,11 @@ struct TaskRouterCLI {
         fputs("Asignada a \(provider.displayName).\n", stderr)
         let process = Process()
         process.executableURL = executable
-        process.arguments = provider == .claude ? ["-p", task] : ["exec", "--skip-git-repo-check", task]
+        switch provider {
+        case .claude: process.arguments = ["-p", task]
+        case .codex: process.arguments = ["exec", "--skip-git-repo-check", task]
+        case .antigravity: process.arguments = ["--model", "gemini-3.1-pro-low", "--print", task]
+        }
         process.environment = ProcessInfo.processInfo.environment.merging(["TOKEN_MONITOR_ROUTED": "1"]) { _, new in new }
         process.standardInput = FileHandle.standardInput
         process.standardOutput = FileHandle.standardOutput

@@ -71,6 +71,11 @@ private struct ProviderSection: View {
                     .font(.system(size: 11))
                     .foregroundStyle(Palette.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
+                if let retry = status.retryAfter {
+                    Text("Se volverá a consultar a las \(retry.formatted(date: .omitted, time: .shortened))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.mutedInk)
+                }
             }
         }
     }
@@ -88,6 +93,11 @@ private struct UnavailableRow: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.mutedInk)
                 .fixedSize(horizontal: false, vertical: true)
+            if let retry = status.retryAfter {
+                Text("Se volverá a consultar a las \(retry.formatted(date: .omitted, time: .shortened))")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.mutedInk)
+            }
         }
     }
 }

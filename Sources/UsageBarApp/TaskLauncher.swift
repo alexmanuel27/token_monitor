@@ -24,7 +24,7 @@ enum TaskLauncher {
             task="$(cat -- \(quote(prompt.path)))"
             rm -f -- \(quote(prompt.path)) \(quote(script.path))
             export TOKEN_MONITOR_ROUTED=1
-            exec \(quote(executable.path)) "$task"
+            exec \(quote(executable.path)) \(provider == .antigravity ? "--model gemini-3.1-pro-low -i " : "")"$task"
             """
         try command.write(to: script, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: script.path)

@@ -5,6 +5,7 @@ public enum MenuBarSource: String, Sendable, CaseIterable, Identifiable {
     case averageWeekly
     case claude
     case codex
+    case antigravity
 
     public static let defaultsKey = "menuBarSource"
 
@@ -15,6 +16,7 @@ public enum MenuBarSource: String, Sendable, CaseIterable, Identifiable {
         case .averageWeekly: "Promedio semanal"
         case .claude: ProviderKind.claude.displayName
         case .codex: ProviderKind.codex.displayName
+        case .antigravity: ProviderKind.antigravity.displayName
         }
     }
 
@@ -23,6 +25,7 @@ public enum MenuBarSource: String, Sendable, CaseIterable, Identifiable {
         case .averageWeekly: nil
         case .claude: .claude
         case .codex: .codex
+        case .antigravity: .antigravity
         }
     }
 }
